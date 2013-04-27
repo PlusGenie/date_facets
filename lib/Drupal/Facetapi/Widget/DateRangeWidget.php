@@ -50,7 +50,6 @@ class Drupal_Apachesolr_Facetapi_Widget_DateRangeWidget extends FacetapiWidgetLi
       }
     }
 
-
     // Render the links.
     parent::execute();
   }

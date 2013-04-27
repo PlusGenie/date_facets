@@ -6,3 +6,4 @@ core = 7.x
 files[] = lib/Drupal/Apachesolr/Facetapi/QueryType/DateRangeQueryType.php
 files[] = lib/Drupal/Facetapi/Widget/DateRangeWidget.php
 files[] = lib/Drupal/Search/Facetapi/QueryType/DateRangeQueryType.php
+files[] = lib/Drupal/SearchApi/Facetapi/QueryType/DateRangeQueryType.php
