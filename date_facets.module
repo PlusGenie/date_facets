@@ -29,9 +29,12 @@ function date_facets_facetapi_facet_info_alter(array &$facet_info, array $search
 function date_facets_associate_widget(array &$facet_info) {
   foreach ($facet_info as $name => $info) {
     $query_types = array_flip($info['query types']);
-    // The check on field_type is specific for search api.
+
+    // The check on "field type" is specific to Search Api.
+    $field_type = empty($info['field type']) ? '' : $info['field type'];
+
     // @todo check if there is a beter way to do this.
-    if (isset($query_types['date']) || $info['field type'] == 'list<date>') {
+    if (isset($query_types['date']) || 'list<date>' == $field_type) {
       $facet_info[$name]['query types'][] = 'date_range';
       // This widget needs a different way to set labels
       // so we add our own callback.
