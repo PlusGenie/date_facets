@@ -74,6 +74,7 @@ function _date_facets_api_facet_create_label(array $values, array $options) {
  */
 function date_facets_get_ranges() {
 
+  $now = time();
   $build = array();
 
   $build['past_hour'] = array(
@@ -97,13 +98,13 @@ function date_facets_get_ranges() {
   $build['past_month'] = array(
     '#count' => NULL,
     '#markup' => t('Past month'),
-    '#time_interval' => time() - strtotime('-1 month'),
+    '#time_interval' => $now - strtotime('-1 month'),
   );
 
   $build['past_year'] = array(
     '#count' => NULL,
     '#markup' => t('Past year'),
-    '#time_interval' => time() - strtotime('-1 year'),
+    '#time_interval' => $now - strtotime('-1 year'),
   );
 
   return $build;
