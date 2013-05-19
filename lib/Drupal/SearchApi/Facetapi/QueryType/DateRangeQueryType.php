@@ -65,7 +65,7 @@ class Drupal_SearchApi_Facetapi_QueryType_DateRangeQueryType extends SearchApiFa
 
         foreach ($build as $key => $item) {
           if ($diff < $item['#time_interval']) {
-            $build[$key]['#count'] = 1;
+            $build[$key]['#count'] += $value['count'];
           }
         }
       }
@@ -84,7 +84,7 @@ class Drupal_SearchApi_Facetapi_QueryType_DateRangeQueryType extends SearchApiFa
     // Gets active facets, starts building hierarchy.
     foreach ($this->adapter->getActiveItems($this->facet) as $key => $item) {
       // If the item is active, the count is the result set count.
-      $build[$key] = array('#count' => $total);
+      $build[$key]['#count'] = $total;
       $keys_of_active_facets[] = $key;
     }
 
@@ -114,12 +114,12 @@ class Drupal_SearchApi_Facetapi_QueryType_DateRangeQueryType extends SearchApiFa
     return isset($options[$key]) ? $options[$key] : FALSE;
   }
 
-/**
-  * Gets a list of facet items and matching filters.
-  *
-  * @return array
-  *   List of facet items and their filters.
-  */
+  /**
+   * Gets a list of facet items and matching filters.
+   *
+   * @return array
+   *   List of facet items and their filters.
+   */
   public function getFacetItems() {
     $now = $_SERVER['REQUEST_TIME'];
     $past_hour = strtotime('-1 hour');
@@ -127,7 +127,7 @@ class Drupal_SearchApi_Facetapi_QueryType_DateRangeQueryType extends SearchApiFa
     $past_week = strtotime('-1 week');
     $past_month = strtotime('-1 month');
     $past_year = strtotime('-1 year');
-    
+
     $options = array(
       'past_hour'     => "[$past_hour TO $now]",
       'past_24_hours' => "[$past_24_hours TO $now]",
