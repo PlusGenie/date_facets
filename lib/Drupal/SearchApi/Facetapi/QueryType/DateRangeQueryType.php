@@ -89,10 +89,13 @@ class Drupal_SearchApi_Facetapi_QueryType_DateRangeQueryType extends SearchApiFa
     }
 
     // If we have active item, unset other items.
-    if (!empty($keys_of_active_facets)) {
-      foreach ($build as $key => $item) {
-        if (!in_array($key, $keys_of_active_facets)) {
-          unset($build[$key]);
+    $settings = $facet->getSettings()->settings;
+    if ((isset($settings['operator'])) && ($settings['operator'] !== FACETAPI_OPERATOR_OR)) {
+      if (!empty($keys_of_active_facets)) {
+        foreach ($build as $key => $item) {
+          if (!in_array($key, $keys_of_active_facets)) {
+            unset($build[$key]);
+          }
         }
       }
     }
