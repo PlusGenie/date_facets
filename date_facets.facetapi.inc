@@ -15,10 +15,6 @@ function date_facets_facetapi_widgets() {
         'label' => t('Date range'),
         'class' => 'Drupal_Apachesolr_Facetapi_Widget_DateRangeWidget',
         'query types' => array('date_range'),
-        'requirements' => array(
-          'facetapi_requirement_facet_property' => array('query types' => 'date_range')
-        ),
-        'requirements_operator' => 'OR',
       ),
     ),
   );
