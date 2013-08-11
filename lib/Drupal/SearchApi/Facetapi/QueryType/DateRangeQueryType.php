@@ -32,6 +32,59 @@ class Drupal_SearchApi_Facetapi_QueryType_DateRangeQueryType extends SearchApiFa
   }
 
   /**
+   * Generate valid date ranges (timestamps) to be used in a SQL query.
+   */
+  protected function generateRange($range = array()) {
+    if (empty($range)) {
+      $start = REQUEST_TIME;
+      $end = REQUEST_TIME + DATE_RANGE_UNIT_DAY;
+    }
+    else {
+      // Generate the timestamp for both start and end date ranges.
+      foreach (array('start', 'end') as $item) {
+        // Start by initializing it to the current time.
+        $$item = REQUEST_TIME;
+        $unit = $range['date_range_' . $item . '_unit'];
+        $amount = (int) $range['date_range_' . $item . '_amount'];
+        switch ($unit) {
+          case 'HOUR':
+            $unit = (int) DATE_RANGE_UNIT_HOUR;
+            break;
+          case 'DAY':
+            $unit = (int) DATE_RANGE_UNIT_DAY;
+            break;
+          case 'MONTH':
+            $unit = (int) DATE_RANGE_UNIT_MONTH;
+            break;
+          case 'YEAR':
+            $unit = (int) DATE_RANGE_UNIT_YEAR;
+            break;
+        }
+        // Based on which operation, either add or subtract the appropriate
+        // amount from the time.
+        // In each case, the amount we subtract is the amount of the unit, times
+        // the value of the unit.
+        switch ($range['date_range_' . $item . '_op']) {
+          case '-':
+            $$item -= ($amount * $unit);
+            break;
+          case '+':
+            $$item += ($amount * $unit);
+            break;
+        }
+      }
+      // If the ops are NOW, we set the times accordingly.
+      if ($range['date_range_start_op'] == 'NOW') {
+        $start = REQUEST_TIME;
+      }
+      if ($range['date_range_end_op'] == 'NOW') {
+        $end = REQUEST_TIME;
+      }
+    }
+    return array($start, $end);
+  }
+
+  /**
    * Implements FacetapiQueryTypeInterface::build().
    *
    * Unlike normal facets, we provide a static list of options.
@@ -56,15 +109,22 @@ class Drupal_SearchApi_Facetapi_QueryType_DateRangeQueryType extends SearchApiFa
     // Executes query, iterates over results.
     if (isset($results['search_api_facets']) && isset($results['search_api_facets'][$this->facet['field']])) {
       $values = $results['search_api_facets'][$this->facet['field']];
-      $build = date_facets_get_ranges(date_facets_default_ranges());
-      $now = $_SERVER['REQUEST_TIME'];
+
+      $realm = facetapi_realm_load('block');
+      $settings = $this->adapter->getFacetSettings($this->facet, $realm);
+      $ranges = (isset($settings->settings['ranges']) && !empty($settings->settings['ranges']) ? $settings->settings['ranges'] : date_facets_default_ranges());
+      // Build the markup for the facet's date ranges.
+      $build = date_facets_get_ranges($ranges);
+
+
       // Calculate values by facet.
       foreach ($values as $value) {
         $value['filter'] = str_replace('"', '', $value['filter']);
-        $diff = $now - $value['filter'];
+        $diff = REQUEST_TIME - $value['filter'];
 
-        foreach ($build as $key => $item) {
-          if ($diff < $item['#time_interval']) {
+        foreach ($ranges as $key => $item) {
+          list($start, $end) = $this->generateRange($item);
+          if ($diff < ($end - $start)) {
             $build[$key]['#count'] += $value['count'];
           }
         }
