@@ -62,7 +62,7 @@ function date_facets_associate_widget(array &$facet_info) {
 function _date_facets_api_facet_create_label(array $values, array $options) {
   $map = array();
 
-  $ranges = date_facets_get_ranges();
+  $ranges = date_facets_get_ranges(date_facets_default_ranges());
 
   // Loop through all the values to create a map.
   // Pull the correct display value from the range definitions.

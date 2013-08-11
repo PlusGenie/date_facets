@@ -56,7 +56,7 @@ class Drupal_SearchApi_Facetapi_QueryType_DateRangeQueryType extends SearchApiFa
     // Executes query, iterates over results.
     if (isset($results['search_api_facets']) && isset($results['search_api_facets'][$this->facet['field']])) {
       $values = $results['search_api_facets'][$this->facet['field']];
-      $build = date_facets_get_ranges();
+      $build = date_facets_get_ranges(date_facets_default_ranges());
       $now = $_SERVER['REQUEST_TIME'];
       // Calculate values by facet.
       foreach ($values as $value) {
