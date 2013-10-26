@@ -43,7 +43,7 @@ function date_facets_associate_widget(array &$facet_info) {
       $facet_info[$name]['query types'][] = 'date_range';
       // This widget needs a different way to set labels
       // so we add our own callback.
-      $facet_info[$name]['map options'] = '_date_facets_api_facet_create_label';
+      $facet_info[$name]['map options']['value callback'] = '_date_facets_api_facet_create_label';
       $facet_info[$name]['query types'][] = 'date_range';
     }
   }
