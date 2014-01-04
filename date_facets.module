@@ -62,7 +62,26 @@ function date_facets_associate_widget(array &$facet_info) {
 function _date_facets_api_facet_create_label(array $values, array $options) {
   $map = array();
 
-  $ranges = date_facets_get_ranges(date_facets_default_ranges());
+  $searchers = facetapi_get_active_searchers();
+  if (!empty($options['index id'])) {
+    foreach ($searchers as $searcher) {
+      // Get current searcher.
+      if (strpos($searcher, '@' . $options['index id']) !== FALSE) {
+        $adapter = facetapi_adapter_load($searcher);
+        $settings = $adapter->getFacetSettings(facetapi_facet_load($options['field']['key'], $searcher), facetapi_realm_load('block'));
+        // Get the configured date ranges, or the default ranges if none have been
+        // set up already.
+        $ranges = (isset($settings->settings['ranges']) ? $settings->settings['ranges'] : date_facets_default_ranges());
+        // Sort ranges.
+        $ranges = date_facets_get_ranges($ranges);
+      }
+    }
+  }
+
+  // Default map.
+  if (empty($ranges)) {
+    $ranges = date_facets_get_ranges(date_facets_default_ranges());
+  }
 
   // Loop through all the values to create a map.
   // Pull the correct display value from the range definitions.
