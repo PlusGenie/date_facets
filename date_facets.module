@@ -78,7 +78,7 @@ function _date_facets_api_facet_create_label(array $values, array $options) {
     }
   }
 
-  // Default map.
+  // Default ranges.
   if (empty($ranges)) {
     $ranges = date_facets_get_ranges(date_facets_default_ranges());
   }
