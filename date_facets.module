@@ -62,25 +62,11 @@ function date_facets_associate_widget(array &$facet_info) {
 function _date_facets_api_facet_create_label(array $values, array $options) {
   $map = array();
 
-  $searchers = facetapi_get_active_searchers();
-  if (!empty($options['index id'])) {
-    foreach ($searchers as $searcher) {
-      // Get current searcher.
-      if (strpos($searcher, '@' . $options['index id']) !== FALSE) {
-        $adapter = facetapi_adapter_load($searcher);
-        $settings = $adapter->getFacetSettings(facetapi_facet_load($options['field']['key'], $searcher), facetapi_realm_load('block'));
-        // Get the configured date ranges, or the default ranges if none have been
-        // set up already.
-        $ranges = (isset($settings->settings['ranges']) ? $settings->settings['ranges'] : date_facets_default_ranges());
-        // Sort ranges.
-        $ranges = date_facets_get_ranges($ranges);
-      }
-    }
-  }
+  $ranges = date_facets_get_ranges($options['field']['key'], $options['index id']);
 
   // Default ranges.
   if (empty($ranges)) {
-    $ranges = date_facets_get_ranges(date_facets_default_ranges());
+    $ranges = date_facets_get_ranges_render_arrays(date_facets_default_ranges());
   }
 
   // Loop through all the values to create a map.
@@ -93,20 +79,48 @@ function _date_facets_api_facet_create_label(array $values, array $options) {
 }
 
 /**
+ * Returns configured ranges or default range if none are configured.
+ *
+ * @param string $facet_name
+ * @return array
+ */
+function date_facets_get_ranges($facet_name, $index_id) {
+  $ranges = array();
+  $searchers = facetapi_get_active_searchers();
+  if (!empty($index_id)) {
+    foreach ($searchers as $searcher) {
+      // Get current searcher.
+      if (strpos($searcher, '@' . $index_id) !== FALSE) {
+        $adapter = facetapi_adapter_load($searcher);
+        $settings = $adapter->getFacetSettings(facetapi_facet_load($facet_name, $searcher), facetapi_realm_load('block'));
+        // Get the configured date ranges, or the default ranges if none have been
+        // set up already.
+        $ranges = (isset($settings->settings['ranges']) ? $settings->settings['ranges'] : date_facets_default_ranges());
+        // Sort ranges.
+        $ranges = date_facets_get_ranges_render_arrays($ranges);
+      }
+    }
+  }
+
+  return $ranges;
+}
+
+/**
  * Returns render arrays for all date ranges.
  *
  * @return array
  *   An associative array of date ranges.
  */
-function date_facets_get_ranges($ranges) {
+function date_facets_get_ranges_render_arrays($ranges) {
   $build = array();
 
   uasort($ranges, 'drupal_sort_weight');
   foreach ($ranges as $range_data) {
-    $build[$range_data['machine_name']] = array(
+    $build[$range_data['machine_name']] = $range_data + array(
       '#count' => NULL,
       '#markup' => check_plain($range_data['label']),
-      '#weight' => $range_data['weight'],
+      // @todo Seems it's not used.
+      //'#weight' => $range_data['weight'],
     );
   }
 
@@ -291,3 +305,4 @@ function date_facets_default_ranges() {
     ),
   );
 }
+

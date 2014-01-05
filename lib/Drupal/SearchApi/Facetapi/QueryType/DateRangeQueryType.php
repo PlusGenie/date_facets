@@ -24,7 +24,7 @@ class Drupal_SearchApi_Facetapi_QueryType_DateRangeQueryType extends SearchApiFa
     $this->adapter->addFacet($this->facet, $query);
     if ($active = $this->adapter->getActiveItems($this->facet)) {
       // Check the first value since only one is allowed.
-      $filter = self::mapFacetItemToFilter(key($active));
+      $filter = self::mapFacetItemToFilter(key($active), $this->facet);
       if ($filter) {
         $this->addFacetFilter($query, $this->facet['field'], $filter);
       }
@@ -40,46 +40,8 @@ class Drupal_SearchApi_Facetapi_QueryType_DateRangeQueryType extends SearchApiFa
       $end = REQUEST_TIME + DATE_RANGE_UNIT_DAY;
     }
     else {
-      // Generate the timestamp for both start and end date ranges.
-      foreach (array('start', 'end') as $item) {
-        // Start by initializing it to the current time.
-        $$item = REQUEST_TIME;
-        $unit = $range['date_range_' . $item . '_unit'];
-        $amount = (int) $range['date_range_' . $item . '_amount'];
-        switch ($unit) {
-          case 'HOUR':
-            $unit = (int) DATE_RANGE_UNIT_HOUR;
-            break;
-          case 'DAY':
-            $unit = (int) DATE_RANGE_UNIT_DAY;
-            break;
-          case 'MONTH':
-            $unit = (int) DATE_RANGE_UNIT_MONTH;
-            break;
-          case 'YEAR':
-            $unit = (int) DATE_RANGE_UNIT_YEAR;
-            break;
-        }
-        // Based on which operation, either add or subtract the appropriate
-        // amount from the time.
-        // In each case, the amount we subtract is the amount of the unit, times
-        // the value of the unit.
-        switch ($range['date_range_' . $item . '_op']) {
-          case '-':
-            $$item -= ($amount * $unit);
-            break;
-          case '+':
-            $$item += ($amount * $unit);
-            break;
-        }
-      }
-      // If the ops are NOW, we set the times accordingly.
-      if ($range['date_range_start_op'] == 'NOW') {
-        $start = REQUEST_TIME;
-      }
-      if ($range['date_range_end_op'] == 'NOW') {
-        $end = REQUEST_TIME;
-      }
+      $start = self::rangeToString($range, 'start');
+      $end = self::rangeToString($range, 'end');
     }
     return array($start, $end);
   }
@@ -114,17 +76,17 @@ class Drupal_SearchApi_Facetapi_QueryType_DateRangeQueryType extends SearchApiFa
       $settings = $this->adapter->getFacetSettings($this->facet, $realm);
       $ranges = (isset($settings->settings['ranges']) && !empty($settings->settings['ranges']) ? $settings->settings['ranges'] : date_facets_default_ranges());
       // Build the markup for the facet's date ranges.
-      $build = date_facets_get_ranges($ranges);
-
+      $build = date_facets_get_ranges_render_arrays($ranges);
 
       // Calculate values by facet.
       foreach ($values as $value) {
         $value['filter'] = str_replace('"', '', $value['filter']);
-        $diff = REQUEST_TIME - $value['filter'];
 
         foreach ($ranges as $key => $item) {
           list($start, $end) = $this->generateRange($item);
-          if ($diff < ($end - $start)) {
+          $future_interval = ($item['date_range_end_op'] == '+' && $start <= $value['filter'] && $value['filter'] <= $end);
+          $past_interval = $item['date_range_end_op'] == '-' && $start >= $value['filter'] && $value['filter'] >= $end;
+          if ($future_interval || $past_interval) {
             $build[$key]['#count'] += $value['count'];
           }
         }
@@ -166,39 +128,53 @@ class Drupal_SearchApi_Facetapi_QueryType_DateRangeQueryType extends SearchApiFa
   /**
    * Maps a facet item to a filter.
    *
-   * @param string $key
-   *   Facet item key, for example 'past_hour'.
+   * @param string $range_machine_name
+   *   For example 'past_hour'.
    *
    * @return string|false
    *   A string that can be used as a filter, false if no filter was found.
    */
-  public function mapFacetItemToFilter($key) {
-    $options = self::getFacetItems();
-    return isset($options[$key]) ? $options[$key] : FALSE;
+  public static function mapFacetItemToFilter($range_machine_name, $facet) {
+    $ranges = date_facets_get_ranges($facet['name'], $facet['map options']['index id']);
+
+    $filter_str = FALSE;
+    if (isset($ranges[$range_machine_name])) {
+      $start = self::rangeToString($ranges[$range_machine_name], 'start');
+      $end = self::rangeToString($ranges[$range_machine_name], 'end');
+      // Future.
+      if ($ranges[$range_machine_name]['date_range_end_op'] == '+') {
+        $filter_str = "[$start TO $end]";
+      }
+      // Past. We should reverse intervals.
+      elseif ($ranges[$range_machine_name]['date_range_end_op'] == '-') {
+        $filter_str = "[$end TO $start]";
+      }
+    }
+
+    return $filter_str;
   }
 
   /**
-   * Gets a list of facet items and matching filters.
+   * Convert a range setting to a timestamp.
    *
-   * @return array
-   *   List of facet items and their filters.
+   * @param array $range_config
+   *   Settings array from a range
+   *
+   * @param string $part
+   *   Whether it's the start or end part of the range config you want to convert
+   *
+   * @return number
    */
-  public function getFacetItems() {
-    $now = $_SERVER['REQUEST_TIME'];
-    $past_hour = strtotime('-1 hour');
-    $past_24_hours = strtotime('-24 hour');
-    $past_week = strtotime('-1 week');
-    $past_month = strtotime('-1 month');
-    $past_year = strtotime('-1 year');
-
-    $options = array(
-      'past_hour'     => "[$past_hour TO $now]",
-      'past_24_hours' => "[$past_24_hours TO $now]",
-      'past_week'     => "[$past_week TO $now]",
-      'past_month'    => "[$past_month TO $now]",
-      'past_year'     => "[$past_year TO $now]",
-    );
-
-    return $options;
+  public static function rangeToString($range_config, $part) {
+    if ($range_config["date_range_{$part}_op"] == 'NOW') {
+      return REQUEST_TIME;
+    }
+    else {
+      return strtotime(
+        "{$range_config["date_range_{$part}_op"]} "
+          . "{$range_config["date_range_{$part}_amount"]} "
+          . "{$range_config["date_range_{$part}_unit"]}"
+      );
+    }
   }
 }
