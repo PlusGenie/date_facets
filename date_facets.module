@@ -72,7 +72,9 @@ function _date_facets_api_facet_create_label(array $values, array $options) {
   // Loop through all the values to create a map.
   // Pull the correct display value from the range definitions.
   foreach ($values as $key => $value) {
-    $map[$value] = $ranges[$value]['#markup'];
+    if (isset($ranges[$value]['#markup'])) {
+      $map[$value] = $ranges[$value]['#markup'];
+    }
   }
 
   return $map;
