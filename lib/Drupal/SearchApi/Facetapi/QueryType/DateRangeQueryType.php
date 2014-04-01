@@ -84,8 +84,8 @@ class Drupal_SearchApi_Facetapi_QueryType_DateRangeQueryType extends SearchApiFa
 
         foreach ($ranges as $key => $item) {
           list($start, $end) = $this->generateRange($item);
-          $future_interval = ($item['date_range_end_op'] == '+' && $start <= $value['filter'] && $value['filter'] <= $end);
-          $past_interval = $item['date_range_end_op'] == '-' && $start >= $value['filter'] && $value['filter'] >= $end;
+          $future_interval = $start <= $value['filter'] && $value['filter'] <= $end;
+          $past_interval = $start >= $value['filter'] && $value['filter'] >= $end;
           if ($future_interval || $past_interval) {
             $build[$key]['#count'] += $value['count'];
           }
